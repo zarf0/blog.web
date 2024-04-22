@@ -291,8 +291,8 @@ def login():
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-    st.markdown("[Register](#)")
-    st.markdown("[Forgot Password?](#)")
+    st.markdown('<a href="#Register">Register</a>', unsafe_allow_html=True)
+
 
     if st.button("Login"):
         if authenticate(username, password):
