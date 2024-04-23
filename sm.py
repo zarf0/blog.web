@@ -3,11 +3,11 @@ import streamlit as st
 import sqlite3
 from datetime import datetime
 
-# Create SQLite connection
+
 conn = sqlite3.connect("blog.db")
 c = conn.cursor()
 
-# Create tables if not exists
+
 c.execute(
     """CREATE TABLE IF NOT EXISTS posts 
              (id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT, content TEXT, category TEXT, tags TEXT, likes INTEGER DEFAULT 0, created_at TEXT)"""
@@ -32,7 +32,7 @@ print("Comments table created successfully")
 
 conn.commit()
 
-# Function to create a new post
+
 def create_post(title, content, user_id):
     if not st.session_state.authenticated:
         st.warning("Please log in to create a post.")
@@ -46,13 +46,13 @@ def create_post(title, content, user_id):
     st.success("Post created successfully!")
 
 
-# Function to retrieve all posts
+
 def get_all_posts():
     c.execute("SELECT * FROM posts ORDER BY created_at DESC")
     return c.fetchall()
 
 
-# Function to display paginated posts
+
 def display_posts(posts, page_number, page_size=5):
     if not posts:
         st.info("No posts available.")
@@ -67,7 +67,7 @@ def display_posts(posts, page_number, page_size=5):
                     f'<h2 style="font-family:sans-serif;color:#262626;">{post[2]}</h2>',
                     unsafe_allow_html=True,
                 )
-                st.write(post[3])  # Display post content
+                st.write(post[3])  
                 st.markdown(
                     f"<p style='font-family:sans-serif;color:#666;'>Category: {post[4]}</p>",
                     unsafe_allow_html=True,
@@ -107,7 +107,7 @@ def display_posts(posts, page_number, page_size=5):
                                 parent_id=None,
                                 comment=comment_content,
                             )
-        # Pagination
+       
         st.write("---")
         total_pages = (len(posts) - 1) // page_size + 1
         if total_pages > 1:
@@ -123,18 +123,18 @@ def display_posts(posts, page_number, page_size=5):
             st.write("---")
 
 
-# Function to increment like count for a post
+
 def increment_like(post_id):
     c.execute("UPDATE posts SET likes = likes + 1 WHERE id=?", (post_id,))
     conn.commit()
 
-# Function to retrieve comments for a specific post
+
 def get_comments_for_post(post_id):
     c.execute("SELECT * FROM comments WHERE post_id=?", (post_id,))
     return c.fetchall()
 
 
-# Function to create a new comment
+
 def create_comment(post_id, user_id, parent_id, comment):
     created_at = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     c.execute(
@@ -145,19 +145,19 @@ def create_comment(post_id, user_id, parent_id, comment):
     st.success("Comment posted successfully!")
 
 
-# Function to retrieve posts created by a specific user
+
 def get_user_posts(user_id):
     c.execute("SELECT * FROM posts WHERE user_id=?", (user_id,))
     return c.fetchall()
 
 
-# Function to delete a post
+
 def delete_post(post_id):
     c.execute("DELETE FROM posts WHERE id=?", (post_id,))
     conn.commit()
 
 
-# Function to register a new user
+
 def register_user(username, email, password, profile_picture):
     c.execute(
         "INSERT INTO users (username, email, password, role, profile_picture) VALUES (?, ?, ?, ?, ?)",
@@ -167,7 +167,7 @@ def register_user(username, email, password, profile_picture):
     st.success("Registration successful!")
 
 
-# Function to authenticate user
+
 def authenticate(username, password):
     c.execute(
         "SELECT * FROM users WHERE username=? AND password=?", (username, password)
@@ -175,7 +175,7 @@ def authenticate(username, password):
     return c.fetchone() is not None
 
 
-# Main Streamlit app
+
 def main():
     st.set_page_config(
         page_title="Advanced Blog Website", page_icon=":memo:", layout="wide"
@@ -183,7 +183,7 @@ def main():
 
     st.title("📝 Advanced Blog Website")
 
-    # Initialize session state variables
+   
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
@@ -191,7 +191,7 @@ def main():
     choice = st.sidebar.radio("Menu", menu)
 
     if choice == "Home":
-        st.subheader("Welcome to the Advanced Blog Website")
+        st.subheader("Welcome to the  Blog Website")
         st.write("Feel free to create and view blog posts from the sidebar.")
 
     elif choice == "Create Post":
@@ -204,14 +204,14 @@ def main():
             if st.button("Create", key="create_post_button"):
                 if (
                     title.strip() and content.strip()
-                ):  # Check if title and content are not empty
+                ): 
                     create_post(title, content, st.session_state.user_id)
                 else:
                     st.warning("Please enter title and content.")
         else:
             st.warning("Please log in to create a post.")
 
-    # Other menu options remain unchanged...
+    
 
     elif choice == "View Posts":
         st.subheader("All Posts")
@@ -224,7 +224,7 @@ def main():
     elif choice == "Delete Posts":
         st.subheader("Delete Posts")
         if st.session_state.authenticated:
-            # Retrieve user's posts
+           
             user_posts = get_user_posts(st.session_state.user_id)
             if not user_posts:
                 st.info("You haven't created any posts yet.")
@@ -258,7 +258,7 @@ def main():
     elif choice == "Profile":
         st.subheader("User Profile Dashboard")
         if st.session_state.authenticated:
-            # Retrieve user profile information
+           
             user_info = get_user_info(st.session_state.user_id)
             st.write(f"Username: {user_info[1]}")
             st.write(f"Email: {user_info[2]}")
@@ -277,13 +277,13 @@ def main():
             st.warning("Please log in to view your profile.")
 
 
-# Function to retrieve user profile information
+
 def get_user_info(user_id):
     c.execute("SELECT * FROM users WHERE id=?", (user_id,))
     return c.fetchone()
 
 
-# Login Page
+
 def login():
     st.set_page_config(page_title="Login", page_icon=":unlock:")
     st.title("Login")
@@ -291,14 +291,14 @@ def login():
     username = st.text_input("Username")
     password = st.text_input("Password", type="password")
 
-    st.markdown('<a href="#Register">Register</a>', unsafe_allow_html=True)
+    st.markdown('<a href="Register">Register</a>', unsafe_allow_html=True)
 
 
     if st.button("Login"):
         if authenticate(username, password):
             st.success("Logged in successfully!")
             st.session_state.authenticated = True
-            st.session_state.user_id = 1  # Assuming user_id=1 for demo purposes
+            st.session_state.user_id = 1  
             st.markdown("Redirecting to the home page...")
             st.experimental_rerun()
         else:
