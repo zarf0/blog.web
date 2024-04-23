@@ -7,7 +7,6 @@ from datetime import datetime
 conn = sqlite3.connect("blog.db")
 c = conn.cursor()
 
-
 c.execute(
     """CREATE TABLE IF NOT EXISTS posts 
              (id INTEGER PRIMARY KEY, user_id INTEGER, title TEXT, content TEXT, category TEXT, tags TEXT, likes INTEGER DEFAULT 0, created_at TEXT)"""
@@ -107,7 +106,7 @@ def display_posts(posts, page_number, page_size=5):
                                 parent_id=None,
                                 comment=comment_content,
                             )
-      
+    
         st.write("---")
         total_pages = (len(posts) - 1) // page_size + 1
         if total_pages > 1:
@@ -129,7 +128,6 @@ def increment_like(post_id):
     conn.commit()
 
 
-
 def get_comments_for_post(post_id):
     c.execute("SELECT * FROM comments WHERE post_id=?", (post_id,))
     return c.fetchall()
@@ -146,14 +144,17 @@ def create_comment(post_id, user_id, parent_id, comment):
     st.success("Comment posted successfully!")
 
 
+
 def get_user_posts(user_id):
     c.execute("SELECT * FROM posts WHERE user_id=?", (user_id,))
     return c.fetchall()
 
 
+
 def delete_post(post_id):
     c.execute("DELETE FROM posts WHERE id=?", (post_id,))
     conn.commit()
+
 
 
 def register_user(username, email, password, profile_picture):
@@ -165,16 +166,22 @@ def register_user(username, email, password, profile_picture):
     st.success("Registration successful!")
 
 
-def register_user_with_profile_picture(username, email, password, profile_picture):
-    profile_picture_path = save_uploaded_image(profile_picture)
-    register_user(username, email, password, profile_picture_path)
-
 
 def authenticate(username, password):
     c.execute(
         "SELECT * FROM users WHERE username=? AND password=?", (username, password)
     )
     return c.fetchone() is not None
+
+def register_user_with_profile_picture(username, email, password, profile_picture):
+    profile_picture_path = save_uploaded_image(profile_picture)
+    register_user(username, email, password, profile_picture_path)
+
+
+def logout():
+    st.session_state.authenticated = False
+    st.session_state.user_id = None
+    st.success("Logged out successfully!")
 
 
 
@@ -189,7 +196,7 @@ def main():
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
-    menu = ["Home", "Create Post", "View Posts", "Delete Posts", "Profile"]
+    menu = ["Home", "Create Post", "View Posts", "Delete Posts", "Profile", "Logout"]
     choice = st.sidebar.radio("Menu", menu)
 
     if choice == "Home":
@@ -213,7 +220,6 @@ def main():
         else:
             st.warning("Please log in to create a post.")
 
-
     elif choice == "View Posts":
         st.subheader("All Posts")
         posts = get_all_posts()
@@ -225,6 +231,7 @@ def main():
     elif choice == "Delete Posts":
         st.subheader("Delete Posts")
         if st.session_state.authenticated:
+            
             user_posts = get_user_posts(st.session_state.user_id)
             if not user_posts:
                 st.info("You haven't created any posts yet.")
@@ -244,6 +251,7 @@ def main():
     elif choice == "Profile":
         st.subheader("User Profile Dashboard")
         if st.session_state.authenticated:
+       
             user_info = get_user_info(st.session_state.user_id)
             st.write(f"Username: {user_info[1]}")
             st.write(f"Email: {user_info[2]}")
@@ -269,6 +277,17 @@ def main():
         if st.button("Update Profile"):
             update_user_profile(st.session_state.user_id, new_bio, new_profile_picture)
 
+    elif choice == "Logout":
+        logout()
+
+
+def save_uploaded_image(uploaded_image):
+    if not os.path.exists("uploads"):
+        os.makedirs("uploads")
+    image_path = os.path.join("uploads", uploaded_image.name)
+    with open(image_path, "wb") as f:
+        f.write(uploaded_image.getbuffer())
+    return image_path
 
 
 def get_user_info(user_id):
@@ -288,15 +307,6 @@ def update_user_profile(user_id, new_bio, new_profile_picture):
         )
         conn.commit()
     st.success("Profile updated successfully!")
-
-
-def save_uploaded_image(uploaded_image):
-    if not os.path.exists("uploads"):
-        os.makedirs("uploads")
-    image_path = os.path.join("uploads", uploaded_image.name)
-    with open(image_path, "wb") as f:
-        f.write(uploaded_image.getbuffer())
-    return image_path
 
 
 
@@ -339,9 +349,6 @@ def login_and_register():
                     register_user(username, email, password, profile_picture=None)
             else:
                 st.warning("Passwords do not match.")
-
-
-
 
 
 
