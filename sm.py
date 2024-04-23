@@ -107,7 +107,7 @@ def display_posts(posts, page_number, page_size=5):
                                 parent_id=None,
                                 comment=comment_content,
                             )
-       
+      
         st.write("---")
         total_pages = (len(posts) - 1) // page_size + 1
         if total_pages > 1:
@@ -129,6 +129,7 @@ def increment_like(post_id):
     conn.commit()
 
 
+
 def get_comments_for_post(post_id):
     c.execute("SELECT * FROM comments WHERE post_id=?", (post_id,))
     return c.fetchall()
@@ -145,17 +146,14 @@ def create_comment(post_id, user_id, parent_id, comment):
     st.success("Comment posted successfully!")
 
 
-
 def get_user_posts(user_id):
     c.execute("SELECT * FROM posts WHERE user_id=?", (user_id,))
     return c.fetchall()
 
 
-
 def delete_post(post_id):
     c.execute("DELETE FROM posts WHERE id=?", (post_id,))
     conn.commit()
-
 
 
 def register_user(username, email, password, profile_picture):
@@ -166,6 +164,10 @@ def register_user(username, email, password, profile_picture):
     conn.commit()
     st.success("Registration successful!")
 
+
+def register_user_with_profile_picture(username, email, password, profile_picture):
+    profile_picture_path = save_uploaded_image(profile_picture)
+    register_user(username, email, password, profile_picture_path)
 
 
 def authenticate(username, password):
@@ -183,15 +185,15 @@ def main():
 
     st.title("📝 Advanced Blog Website")
 
-   
+
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
 
-    menu = ["Home", "Create Post", "View Posts", "Delete Posts", "Register", "Profile"]
+    menu = ["Home", "Create Post", "View Posts", "Delete Posts", "Profile"]
     choice = st.sidebar.radio("Menu", menu)
 
     if choice == "Home":
-        st.subheader("Welcome to the  Blog Website")
+        st.subheader("Welcome to the Advanced Blog Website")
         st.write("Feel free to create and view blog posts from the sidebar.")
 
     elif choice == "Create Post":
@@ -204,14 +206,13 @@ def main():
             if st.button("Create", key="create_post_button"):
                 if (
                     title.strip() and content.strip()
-                ): 
+                ):  
                     create_post(title, content, st.session_state.user_id)
                 else:
                     st.warning("Please enter title and content.")
         else:
             st.warning("Please log in to create a post.")
 
-    
 
     elif choice == "View Posts":
         st.subheader("All Posts")
@@ -224,7 +225,6 @@ def main():
     elif choice == "Delete Posts":
         st.subheader("Delete Posts")
         if st.session_state.authenticated:
-           
             user_posts = get_user_posts(st.session_state.user_id)
             if not user_posts:
                 st.info("You haven't created any posts yet.")
@@ -241,24 +241,9 @@ def main():
         else:
             st.warning("Please log in to delete posts.")
 
-    elif choice == "Register":
-        st.subheader("Register")
-        username = st.text_input("Username:", key="register_username")
-        email = st.text_input("Email:", key="register_email")
-        password = st.text_input("Password:", type="password", key="register_password")
-        confirm_password = st.text_input(
-            "Confirm Password:", type="password", key="confirm_password"
-        )
-        if st.button("Register", key="register_button"):
-            if password == confirm_password:
-                register_user(username, email, password, profile_picture_path=None)
-            else:
-                st.warning("Passwords do not match.")
-
     elif choice == "Profile":
         st.subheader("User Profile Dashboard")
         if st.session_state.authenticated:
-           
             user_info = get_user_info(st.session_state.user_id)
             st.write(f"Username: {user_info[1]}")
             st.write(f"Email: {user_info[2]}")
@@ -276,6 +261,14 @@ def main():
         else:
             st.warning("Please log in to view your profile.")
 
+       
+        new_bio = st.text_area("Update Bio:", value="", key="new_bio")
+        new_profile_picture = st.file_uploader(
+            "Upload Profile Picture", type=["jpg", "jpeg", "png"], key="profile_pic"
+        )
+        if st.button("Update Profile"):
+            update_user_profile(st.session_state.user_id, new_bio, new_profile_picture)
+
 
 
 def get_user_info(user_id):
@@ -283,33 +276,79 @@ def get_user_info(user_id):
     return c.fetchone()
 
 
-
-def login():
-    st.set_page_config(page_title="Login", page_icon=":unlock:")
-    st.title("Login")
-
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
-
-    st.markdown('<a href="Register">Register</a>', unsafe_allow_html=True)
-
-
-    if st.button("Login"):
-        if authenticate(username, password):
-            st.success("Logged in successfully!")
-            st.session_state.authenticated = True
-            st.session_state.user_id = 1  
-            st.markdown("Redirecting to the home page...")
-            st.experimental_rerun()
-        else:
-            st.error("Incorrect username or password.")
+def update_user_profile(user_id, new_bio, new_profile_picture):
+    if new_bio:
+        c.execute("UPDATE users SET bio=? WHERE id=?", (new_bio, user_id))
+        conn.commit()
+    if new_profile_picture:
+        profile_picture_path = save_uploaded_image(new_profile_picture)
+        c.execute(
+            "UPDATE users SET profile_picture=? WHERE id=?",
+            (profile_picture_path, user_id),
+        )
+        conn.commit()
+    st.success("Profile updated successfully!")
 
 
-# Run the app
+def save_uploaded_image(uploaded_image):
+    if not os.path.exists("uploads"):
+        os.makedirs("uploads")
+    image_path = os.path.join("uploads", uploaded_image.name)
+    with open(image_path, "wb") as f:
+        f.write(uploaded_image.getbuffer())
+    return image_path
+
+
+
+def login_and_register():
+    st.set_page_config(page_title="Login/Register", page_icon=":unlock:")
+    st.title("Login/Register")
+
+    choice = st.radio("Choose an action:", ("Login", "Register"))
+
+    if choice == "Login":
+        st.subheader("Login")
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            if authenticate(username, password):
+                st.success("Logged in successfully!")
+                st.session_state.authenticated = True
+                st.session_state.user_id = 1  
+                st.markdown("Redirecting to the home page...")
+                st.experimental_rerun()
+            else:
+                st.error("Incorrect username or password.")
+
+    elif choice == "Register":
+        st.subheader("Register")
+        username = st.text_input("Username:")
+        email = st.text_input("Email:")
+        password = st.text_input("Password:", type="password")
+        confirm_password = st.text_input("Confirm Password:", type="password")
+        profile_picture = st.file_uploader(
+            "Upload Profile Picture", type=["jpg", "jpeg", "png"]
+        )
+        if st.button("Register"):
+            if password == confirm_password:
+                if profile_picture is not None:
+                    register_user_with_profile_picture(
+                        username, email, password, profile_picture
+                    )
+                else:
+                    register_user(username, email, password, profile_picture=None)
+            else:
+                st.warning("Passwords do not match.")
+
+
+
+
+
+
 if __name__ == "__main__":
     if "authenticated" not in st.session_state:
         st.session_state.authenticated = False
     if not st.session_state.authenticated:
-        login()
+        login_and_register()
     else:
         main()
